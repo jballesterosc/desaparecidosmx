@@ -27,6 +27,17 @@ Per entidad:
   fecha de hechos, per categoría. Month-independent; refreshed on every
   export of that state.
 
+Combined (same schema, produced by `combine.py` from the per-state
+files; only written when **every** state's input exists — see
+DECISIONS.md #9):
+
+- `data/processed/all-states/<YYYY-MM>.csv` — all states' monthly CSVs
+  for that month, concatenated. Dated rows only, so monthly files stay
+  additive across a range.
+- `data/processed/all-states/<YYYY>.csv` — all states × 12 months plus
+  each state's `sin-fecha.csv` exactly once. Filter on
+  `periodo != SIN_FECHA` for dated rows only.
+
 ## Row grain
 
 **One row per entidad × month × categoría × sexo × municipio**, with a

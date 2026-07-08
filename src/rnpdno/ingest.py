@@ -40,6 +40,20 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 )
 
+# Cache file names fetch_slice writes for one slice (each with a
+# .meta.json sidecar). fetch_slice asserts its task list matches.
+SLICE_CACHE_NAMES = [
+    "Totales", "Totales_fechaNula", "AreaChartSexoMeses", "CatalogoMunicipios",
+] + [f"TablaDetalle_estatus={v}" for v in CATEGORIAS.values()]
+
+
+def slice_cache_complete(id_estado: str, mes: str) -> bool:
+    """True if every raw file for the slice is already cached."""
+    slice_dir = RAW_DIR / f"estado={id_estado}" / mes
+    return all((slice_dir / f"{name}{ext}").is_file()
+               for name in SLICE_CACHE_NAMES
+               for ext in (".json", ".meta.json"))
+
 
 def make_session() -> requests.Session:
     """Create a session primed with the dashboard's cookies and headers."""
@@ -120,6 +134,8 @@ def fetch_slice(id_estado: str, fecha_inicio: str, fecha_fin: str) -> dict:
             dict(base, idEstatusVictima=id_estatus,
                  TipoDetalle=TIPO_DETALLE_MUNICIPIOS),
         ))
+
+    assert [name for name, _, _ in tasks] == SLICE_CACHE_NAMES
 
     session = make_session()
     time.sleep(REQUEST_DELAY_SECONDS)

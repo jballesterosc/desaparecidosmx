@@ -119,3 +119,47 @@ whenever a call of this kind is made; keep entries short.
   SIN_FECHA bucket applies to the spatial dimension. `cve_entidad`
   `33` is documented as a special non-INEGI value; consumers joining
   on INEGI codes must handle or filter it explicitly.
+
+## 9. Combined all-states files: strict inputs, SIN_FECHA only in the yearly file
+
+- **Problem:** Consumers want national files, not 33 directories. Two
+  sub-questions: where do SIN_FECHA rows go, and what happens when a
+  state's input CSV is missing?
+- **Options:** SIN_FECHA — (a) repeat the bucket in every monthly
+  combined file; (b) dated-only monthly files, SIN_FECHA once per state
+  in the yearly file. Missing inputs — (a) combine whatever exists with
+  a warning; (b) refuse to write.
+- **Decision:** (b) and (b), in `combine.py`. `all-states/<YYYY-MM>.csv`
+  concatenates the per-state monthly CSVs verbatim;
+  `all-states/<YYYY>.csv` adds each state's `sin-fecha.csv` exactly
+  once, distinguishable via `periodo = SIN_FECHA`. Any missing input
+  raises `MissingInputError` and nothing is written. Built purely from
+  `data/processed/`, no fetching.
+- **Why:** Repeating SIN_FECHA per month would double-count it across
+  any month range, breaking the additivity entry 4 bought; putting it
+  in the yearly file keeps the full register visible and filterable.
+  Refusing on missing inputs means a partial national file can never
+  silently overwrite (or pose as) a complete one — a warning on stderr
+  doesn't travel with a CSV.
+
+## 10. Orchestrator (`run.py`): log-and-continue, cache-skip by default
+
+- **Problem:** Batch runs (33 estados × 12 months) die mid-run on one
+  bad slice under fail-fast, and re-running re-fetches hundreds of
+  already-cached slices — slow and impolite to the server.
+- **Options:** (a) fail-fast like the single-slice CLIs; (b) record the
+  failure, skip the slice, keep going, exit nonzero with a summary.
+  And: (a) always re-fetch; (b) skip ingest when the slice's raw cache
+  is complete (all files listed in `SLICE_CACHE_NAMES`), `--refetch`
+  to override.
+- **Decision:** (b) and (b). `python -m rnpdno.run --estados all
+  --periodos 2024` runs ingest → export → combine; export is skipped
+  for slices whose ingest failed; combines run last over the full
+  entidad set regardless of `--estados` (entry 9 guards partial
+  output). Yearly combines only for periodos given as a bare year.
+- **Why:** For a long unattended batch, one flaky slice must cost one
+  slice, not the run; the summary + exit code preserve loud failure at
+  the batch level. Cache-skip makes re-running with identical
+  arguments the resume mechanism, and honors "be gentle". Single-slice
+  CLIs stay fail-fast — ingest/export/combine remain independent
+  modules the runner merely calls.
