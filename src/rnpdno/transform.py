@@ -67,8 +67,17 @@ def _consultado_en(slice_dir: Path, name: str) -> str:
 
 
 def municipio_code_map(slice_dir: Path) -> dict:
-    """Municipio name -> within-state code, from the cached catalog."""
-    catalog = _load(slice_dir, "CatalogoMunicipios")
+    """Municipio name -> within-state code, from the cached catalog.
+
+    The catalog is month-invariant and cached once per state (in
+    slice_dir's parent, see ingest.ensure_state_cache); old-layout
+    slices carried a per-month copy, kept as a fallback so they stay
+    exportable as-is.
+    """
+    src = slice_dir.parent
+    if not (src / "CatalogoMunicipios.json").is_file():
+        src = slice_dir
+    catalog = _load(src, "CatalogoMunicipios")
     return {row["Text"].strip(): row["Value"] for row in catalog if row["Value"] != 0}
 
 
@@ -174,13 +183,22 @@ def sin_fecha_rows(id_estado: str, periodo: str) -> list[dict]:
     """Per-state SIN_FECHA bucket: undated records per categoria.
 
     Computed as Totales(mostrarFechaNula=1) - Totales(mostrarFechaNula=0)
-    for the cached slice. The result is independent of the month queried
-    (the flag adds the same undated records to any date range).
+    over one shared date range. The result is independent of the range
+    queried (the flag adds the same undated records to any date range),
+    so the pair is cached once per state (see ingest.ensure_state_cache);
+    old-layout slices, which cached the pair per month, are a fallback.
     """
-    slice_dir = RAW_DIR / f"estado={id_estado}" / periodo
-    con = _load(slice_dir, "Totales_fechaNula")
-    sin = _load(slice_dir, "Totales")
-    consultado = _consultado_en(slice_dir, "Totales_fechaNula")
+    state_dir = RAW_DIR / f"estado={id_estado}"
+    pair = ("Totales_fechaNula", "Totales_fechaNula_base")
+    if all((state_dir / f"{n}.json").is_file() for n in pair):
+        con = _load(state_dir, "Totales_fechaNula")
+        sin = _load(state_dir, "Totales_fechaNula_base")
+        consultado = _consultado_en(state_dir, "Totales_fechaNula")
+    else:
+        slice_dir = state_dir / periodo
+        con = _load(slice_dir, "Totales_fechaNula")
+        sin = _load(slice_dir, "Totales")
+        consultado = _consultado_en(slice_dir, "Totales_fechaNula")
 
     rows = []
     for categoria in CATEGORIAS:

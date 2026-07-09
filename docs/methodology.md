@@ -33,13 +33,22 @@ internal API calls and iterates over filter permutations.
    headers) obtains the `.AspNet.ApplicationCookie` session cookie.
    Data endpoints then accept JSON POSTs carrying the dashboard's
    31-field filter payload (empty string = filter not applied).
-2. **Per entidad × month slice**, `ingest.py` POSTs:
-   - `/Sociodemografico/Totales` twice — with `mostrarFechaNula=0`
-     and `=1` (the pair feeds the SIN_FECHA computation below);
-   - `/SocioDemografico/AreaChartSexoMeses` (context/cross-check);
+2. **Per entidad × month slice**, `ingest.py` POSTs the
+   reconciliation set:
+   - `/Sociodemografico/Totales` (`mostrarFechaNula=0`);
    - `/SocioDemografico/TablaDetalle` with `TipoDetalle=3`
-     (municipios), once per categoría (`idEstatusVictima` = 7, 2, 3);
-   - `/Catalogo/Municipios` for the state's INEGI municipio codes.
+     (municipios), once per categoría (`idEstatusVictima` = 7, 2, 3).
+
+   **Once per entidad** (`ensure_state_cache`), because the responses
+   are month-invariant (verified against cached slices — see
+   DECISIONS.md entry 11):
+   - `/Catalogo/Municipios` for the state's INEGI municipio codes;
+   - the `Totales` `mostrarFechaNula=1`/`=0` pair over one shared date
+     range (feeds the SIN_FECHA computation below).
+
+   One HTTP session is shared across a batch run and re-primed if it
+   expires. `AreaChartSexoMeses` is no longer fetched per slice —
+   nothing downstream consumed it (entry 11).
 3. Verbatim response bodies are cached to `data/raw/` (gitignored)
    with a metadata sidecar (URL, payload, timestamp) **before** any
    parsing. `transform.py` reads only from the cache and never hits

@@ -6,6 +6,11 @@ if anything failed). Ingest is skipped for slices whose raw cache is
 already complete (pass --refetch to force), so an interrupted batch can
 be re-run with the same arguments and resume where it stopped.
 
+One HTTP session is shared across the whole run, and each estado's
+month-invariant state-level files (municipio catalog, fechaNula pair)
+are ensured once per run — seeded from already-cached old-layout
+slices when possible, so resuming never refetches cached data.
+
 Combines run last, over the *full* entidad set regardless of --estados:
 the all-states artifact means all states, and combine refuses to write
 a partial national file (see combine.py). Yearly files are only built
@@ -23,7 +28,13 @@ from datetime import datetime
 from rnpdno.catalogs import ENTIDADES
 from rnpdno.combine import combine_month, combine_year
 from rnpdno.export import export_slice
-from rnpdno.ingest import fetch_slice, month_bounds, slice_cache_complete
+from rnpdno.ingest import (
+    Fetcher,
+    ensure_state_cache,
+    fetch_slice,
+    month_bounds,
+    slice_cache_complete,
+)
 
 
 def parse_estados(value: str) -> list[str]:
@@ -100,9 +111,17 @@ class Runner:
 def run(estados: list[str], months: list[str], years: list[str],
         refetch: bool = False) -> Runner:
     runner = Runner()
+    fetcher = Fetcher()
+    ensured_states: set[str] = set()
     for mes in months:
         for id_estado in estados:
             scope = f"estado={id_estado} {mes}"
+            if id_estado not in ensured_states:
+                ensured_states.add(id_estado)
+                runner.attempt(
+                    "ingest", f"estado={id_estado} state-cache",
+                    lambda: ensure_state_cache(id_estado, mes, fetcher,
+                                               refetch=refetch))
             if not refetch and slice_cache_complete(id_estado, mes):
                 runner.skip("ingest", scope, "already cached")
                 ingested = True
@@ -110,7 +129,8 @@ def run(estados: list[str], months: list[str], years: list[str],
                 fecha_inicio, fecha_fin = month_bounds(mes)
                 ingested = runner.attempt(
                     "ingest", scope,
-                    lambda: fetch_slice(id_estado, fecha_inicio, fecha_fin))
+                    lambda: fetch_slice(id_estado, fecha_inicio, fecha_fin,
+                                        fetcher))
             if ingested:
                 runner.attempt("export", scope,
                                lambda: export_slice(id_estado, mes))

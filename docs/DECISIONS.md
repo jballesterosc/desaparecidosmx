@@ -163,3 +163,32 @@ whenever a call of this kind is made; keep entries short.
   arguments the resume mechanism, and honors "be gentle". Single-slice
   CLIs stay fail-fast — ingest/export/combine remain independent
   modules the runner merely calls.
+
+## 11. Request reduction: month-invariant fetches hoisted to state level
+
+- **Problem:** A full-year backfill made 8 requests per entidad × month
+  slice (3,168 per year, ~1h46m of polite 2s delays), but half of them
+  re-fetched data that never changes within a state: the municipio
+  catalog is byte-identical across months (verified by checksum against
+  the cached 2023–2025 slices), the SIN_FECHA diff
+  Totales(fechaNula=1) − Totales(fechaNula=0) is identical for every
+  month (verified likewise), AreaChartSexoMeses was consumed by
+  nothing downstream, and the session-priming GET ran once per slice.
+- **Options:** (a) shorten REQUEST_DELAY_SECONDS or parallelize;
+  (b) keep the pacing and eliminate redundant requests.
+- **Decision:** (b). Per-slice ingest now fetches only the
+  reconciliation set: Totales (mostrarFechaNula=0) + TablaDetalle ×3
+  categorías — that path is unchanged. The municipio catalog and the
+  fechaNula pair (=1 and =0 over one shared range) are cached once per
+  state in `data/raw/estado=<id>/` (`ensure_state_cache`), seeded by
+  copying from already-cached old-layout slices before any fetching.
+  One HTTP session (`Fetcher`) is shared across a run and re-primed if
+  it expires. AreaChartSexoMeses dropped from the hot loop (refetch ad
+  hoc if a cross-check ever needs it). Old-layout slices still satisfy
+  `slice_cache_complete` (the new per-slice set is a subset) and stay
+  exportable via fallbacks in `transform.py`, so resuming a batch never
+  refetches anything already cached.
+- **Why:** ~48% fewer requests (3,168 → ~1,651 per year run) without
+  touching the delay, adding concurrency, or altering the per-month
+  reconciliation invariants (entry 2); honors "be gentle" by asking
+  the server only for what actually varies.
