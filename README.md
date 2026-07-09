@@ -33,6 +33,16 @@ Columns: `cve_entidad`, `entidad`, `periodo`, `categoria`, `sexo`,
 `cve_municipio`, `municipio`, `conteo`, `consultado_en`. The full schema
 and its caveats are in [`docs/data_dictionary.md`](docs/data_dictionary.md).
 
+### Coverage
+
+All 33 entidades are present. Per-state monthly CSVs span **2015 through
+2026**: early years are partial (2015 is January only; 2016–2020 are
+roughly January–September), then continuous month-by-month from
+**2021-01** onward. Combined `all-states/<YYYY>.csv` yearly files exist
+for **2021–2026**. Each state also carries its month-independent
+`sin-fecha.csv`. Coverage grows as backfill runs — regenerate any scope
+with `rnpdno.run` (see Quickstart).
+
 **Read the caveats before quoting numbers.** A month's CSV can be a
 small fraction of a state's register (undated records live only in
 `sin-fecha.csv`; dated events may sit in other years), and the RNPDNO is
