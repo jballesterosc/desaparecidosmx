@@ -136,3 +136,115 @@ if residual_aqui:
         "la fuente no reparte por municipio ni sexo."
     )
 st.caption(" ".join(notas))
+st.divider()
+
+# ── Municipios ──────────────────────────────────────────────────────
+if cve == "33":
+    with st.container(border=True):
+        st.markdown("### Sin desglose municipal")
+        st.markdown(
+            "Estos registros corresponden a personas cuya entidad se "
+            "desconoce; su único «municipio» en la fuente es "
+            "**Se desconoce**, por lo que aquí no hay desglose municipal. "
+            "Ubicación desconocida no es cero: por eso esta entidad se "
+            "reporta como una más."
+        )
+else:
+    mun = (
+        rows.groupby(["cve_municipio", "municipio"], as_index=False)["conteo"]
+        .sum()
+        .sort_values("conteo", ascending=False)
+    )
+    mun["municipio_label"] = mun["municipio"].map(theme.title_es)
+    total_estado = max(int(mun["conteo"].sum()), 1)
+    mun["porcentaje"] = (mun["conteo"] / total_estado * 100).round(1)
+    top = mun.iloc[0]
+    top15 = mun.head(15)
+    theme.chart_frame(
+        title=(
+            f"{top['municipio_label']} concentra el {top['porcentaje']:,.1f}% "
+            f"de los registros de {entidad_label} en {f.periodo_label}"
+        ),
+        subtitle=(
+            f"Los 15 municipios con más registros de {len(mun)} con "
+            "registros en el periodo · la tabla y el CSV incluyen todos"
+        ),
+        source=theme.source_line(consultado),
+        fig=charts.ranking_fig(
+            top15,
+            value_col="conteo",
+            text=[f"{int(v):,}" for v in top15.sort_values("conteo")["conteo"]],
+            hover=[
+                f"{int(v):,} registros · {p:,.1f}% del estado"
+                for v, p in zip(
+                    top15.sort_values("conteo")["conteo"],
+                    top15.sort_values("conteo")["porcentaje"],
+                )
+            ],
+            highlight_key=top["cve_municipio"],
+            key_col="cve_municipio",
+            label_col="municipio_label",
+        ),
+        data=mun[["cve_municipio", "municipio", "conteo", "porcentaje"]],
+        download_name=(
+            f"umbral_rnpdno_municipios_{cve}_{f.periodo_ini}"
+            f"_{f.periodo_fin}_c{consultado}.csv"
+        ),
+        key="est-mun",
+    )
+    if (mun["municipio"] == "MUNICIPIO NO DESGLOSADO").any():
+        nd = int(
+            mun.loc[mun["municipio"] == "MUNICIPIO NO DESGLOSADO", "conteo"]
+            .sum()
+        )
+        st.caption(
+            f"«Municipio no desglosado» agrupa {theme.fmt(nd)} registros "
+            "que la fuente no reparte por municipio."
+        )
+    st.caption(
+        "Conteos agregados por municipio (clave INEGI en el CSV); el "
+        "registro público no contiene ni permite ubicar casos "
+        "individuales."
+    )
+st.divider()
+
+# ── Registros sin fecha de hechos ───────────────────────────────────
+# Un hecho del estado completo: independiente de los filtros de
+# periodo/categoría/sexo (el hueco es del registro, no de la selección).
+dated_estado_full = int(
+    dated.loc[dated["cve_entidad"] == cve, "conteo"].sum()
+)
+undated_full = undated[undated["cve_entidad"] == cve]
+undated_full_total = int(undated_full["conteo"].sum())
+registro_total = dated_estado_full + undated_full_total
+pct_sf = undated_full_total / max(registro_total, 1) * 100
+
+with st.container(border=True):
+    st.markdown(
+        f"### El {pct_sf:,.1f}% del registro de {entidad_label} "
+        "no tiene fecha de hechos"
+    )
+    st.caption(
+        f"{theme.fmt(undated_full_total)} de {theme.fmt(registro_total)} "
+        "registros carecen de fecha de hechos: no aparecen en ninguna "
+        "serie mensual ni en el desglose municipal o por sexo (la fuente "
+        "solo expone este bloque por categoría). Todo el registro del "
+        "estado, sin filtros."
+    )
+    cols = st.columns(3)
+    for col, cat in zip(cols, theme.CATEGORIA_LABELS):
+        val = int(
+            undated_full.loc[undated_full["categoria"] == cat, "conteo"].sum()
+        )
+        col.metric(theme.CATEGORIA_LABELS[cat], theme.fmt(val))
+    st.markdown(
+        f'<p class="u-source">{theme.source_line(consultado)}</p>',
+        unsafe_allow_html=True,
+    )
+    st.download_button(
+        "Descargar CSV sin fecha",
+        undated_full.to_csv(index=False).encode("utf-8"),
+        file_name=f"umbral_rnpdno_sin_fecha_{cve}_c{consultado}.csv",
+        mime="text/csv",
+        key="est-sf-csv",
+    )

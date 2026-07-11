@@ -219,7 +219,7 @@ theme.chart_frame(
     ),
     fig=charts.ranking_fig(
         rank, value_col=value_col, text=text, hover=hover,
-        highlight_cve=destacado,
+        highlight_key=destacado,
     ),
     data=rank_sorted.drop(columns=["entidad_label"]),
     download_name=(

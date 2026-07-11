@@ -122,7 +122,9 @@ def ranking_fig(
     value_col: str,
     text: list[str],
     hover: list[str],
-    highlight_cve: str,
+    highlight_key: str,
+    key_col: str = "cve_entidad",
+    label_col: str = "entidad_label",
 ) -> go.Figure:
     """Horizontal ranked bars, largest on top, one bar in signal.
 
@@ -131,13 +133,13 @@ def ranking_fig(
     """
     df = df.sort_values(value_col)  # plotly draws bottom-up
     colors = [
-        theme.MODE["signal"] if cve == highlight_cve else theme.MODE["muted"]
-        for cve in df["cve_entidad"]
+        theme.MODE["signal"] if key == highlight_key else theme.MODE["muted"]
+        for key in df[key_col]
     ]
     fig = go.Figure(
         go.Bar(
             x=df[value_col],
-            y=df["entidad_label"],
+            y=df[label_col],
             orientation="h",
             marker=dict(color=colors),
             text=text,
