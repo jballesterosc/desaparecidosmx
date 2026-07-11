@@ -25,6 +25,49 @@ if sin_desglose:
 
 consultado = data.consultado_en()
 
+# ── KPI header ──────────────────────────────────────────────────────
+# Neutral figures, no delta arrows: a month-over-month drop is usually
+# reporting lag, and valenced deltas fail the dignity rule
+# (DECISIONS.md #12.4).
+por_categoria_kpi = (
+    rows.groupby("categoria")["conteo"].sum()
+    .reindex(list(theme.CATEGORIA_LABELS), fill_value=0)
+)
+undated_kpi = int(
+    undated[undated["categoria"].isin(f.categorias)]["conteo"].sum()
+)
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Registros en el periodo", theme.fmt(int(por_categoria_kpi.sum())))
+c2.metric(
+    "Desaparecidas o no localizadas",
+    theme.fmt(int(por_categoria_kpi["DESAPARECIDA_O_NO_LOCALIZADA"])),
+)
+c3.metric(
+    "Localizadas (con y sin vida)",
+    theme.fmt(
+        int(por_categoria_kpi["LOCALIZADA_CON_VIDA"]
+            + por_categoria_kpi["LOCALIZADA_SIN_VIDA"])
+    ),
+)
+c4.metric("Sin fecha de hechos", theme.fmt(undated_kpi))
+c4.caption("No incluidos en las demás cifras ni en las series.")
+st.caption(
+    f"Periodo {f.periodo_label} · las tres categorías particionan el "
+    "total; cifras según el registro consultado el "
+    f"{consultado}."
+)
+kpi_data = por_categoria_kpi.rename("conteo").rename_axis("categoria").reset_index()
+kpi_data.loc[len(kpi_data)] = ["SIN_FECHA", undated_kpi]
+st.download_button(
+    "Descargar CSV de estas cifras",
+    kpi_data.to_csv(index=False).encode("utf-8"),
+    file_name=f"umbral_rnpdno_kpi_nacional_{f.periodo_ini}_{f.periodo_fin}"
+              f"_c{consultado}.csv",
+    mime="text/csv",
+    key="pan-kpi-csv",
+)
+st.divider()
+
 # ── View 1 · Tendencia nacional ─────────────────────────────────────
 months = charts.month_span(f.periodo_ini, f.periodo_fin)
 por_categoria = st.toggle("Ver por categoría", key="pan-trend-cat")
