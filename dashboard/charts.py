@@ -72,11 +72,15 @@ def trend_fig(series: dict[str, tuple[pd.Series, str]]) -> go.Figure:
                 line=dict(color=color, width=2, dash="dot"), name=label,
                 hovertemplate=hover,
             )
-        if multi:  # direct label at the line's end — no legend box
+        if multi:  # direct label — no legend box. Anchor at the last
+            # firm point: the provisional tail plunges toward zero and
+            # would pile every label onto the same spot.
+            anchor = solid.index[-1] if not solid.empty else serie.index[-1]
             fig.add_annotation(
-                x=serie.index[-1], y=float(serie.iloc[-1]),
-                text=label, showarrow=False, xanchor="left", xshift=6,
+                x=anchor, y=float(serie[anchor]),
+                text=label, showarrow=False, xanchor="left", xshift=8,
                 font=dict(family="IBM Plex Sans", size=12, color=color),
+                bgcolor=theme.MODE["panel"],
             )
     first = next(iter(series.values()))[0]
     cut = provisional_from()
@@ -88,13 +92,15 @@ def trend_fig(series: dict[str, tuple[pd.Series, str]]) -> go.Figure:
             line=dict(dash="dot", color=theme.MODE["caption"], width=1),
         )
         fig.add_annotation(
-            x=cut, y=1, yref="paper", yanchor="bottom",
+            x=cut, y=1, yref="paper", yanchor="top",
             text="provisional →", showarrow=False, xanchor="left",
+            xshift=4,
             font=dict(family="IBM Plex Mono", size=11,
                       color=theme.MODE["caption"]),
         )
     fig.update_layout(**theme.plotly_layout())
-    fig.update_layout(hovermode="x unified", height=380)
+    fig.update_layout(hovermode="x unified", height=380,
+                      margin=dict(t=24))
     fig.update_yaxes(tickformat="~s")
     n_months = len(first)
     fig.update_xaxes(
@@ -107,4 +113,52 @@ def trend_fig(series: dict[str, tuple[pd.Series, str]]) -> go.Figure:
     )
     if multi:
         fig.update_layout(margin=dict(r=140))
+    return fig
+
+
+def ranking_fig(
+    df: pd.DataFrame,
+    *,
+    value_col: str,
+    text: list[str],
+    hover: list[str],
+    highlight_cve: str,
+) -> go.Figure:
+    """Horizontal ranked bars, largest on top, one bar in signal.
+
+    No gridlines: every bar carries its value label in mono (brand
+    bar spec), so the grid has nothing left to do.
+    """
+    df = df.sort_values(value_col)  # plotly draws bottom-up
+    colors = [
+        theme.MODE["signal"] if cve == highlight_cve else theme.MODE["muted"]
+        for cve in df["cve_entidad"]
+    ]
+    fig = go.Figure(
+        go.Bar(
+            x=df[value_col],
+            y=df["entidad_label"],
+            orientation="h",
+            marker=dict(color=colors),
+            text=text,
+            textposition="outside",
+            textfont=dict(family="IBM Plex Mono", size=11,
+                          color=theme.MODE["muted"]),
+            customdata=hover,
+            hovertemplate="%{y} · %{customdata}<extra></extra>",
+            cliponaxis=False,
+        )
+    )
+    fig.update_layout(**theme.plotly_layout())
+    fig.update_layout(
+        height=max(420, 22 * len(df) + 60),
+        bargap=0.35,
+        margin=dict(r=170),
+    )
+    fig.update_xaxes(visible=False, rangemode="tozero")
+    fig.update_yaxes(
+        gridcolor="rgba(0,0,0,0)",
+        tickfont=dict(family="IBM Plex Sans", size=12,
+                      color=theme.MODE["ink"]),
+    )
     return fig

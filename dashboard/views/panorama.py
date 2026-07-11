@@ -1,5 +1,6 @@
 """Panorama nacional — KPI header, tendencia nacional, ranking estatal."""
 
+import pandas as pd
 import streamlit as st
 
 import charts
@@ -123,3 +124,112 @@ if f.periodo_fin > charts.consult_month():
         f"Meses posteriores a la consulta ({charts.consult_month()}) "
         "no se dibujan: aún no pueden contener hechos registrados."
     )
+st.divider()
+
+# ── View 2 · Ranking estatal ────────────────────────────────────────
+por_estado = (
+    rows.groupby(["cve_entidad", "entidad"], as_index=False)["conteo"].sum()
+)
+por_estado["entidad_label"] = por_estado["entidad"].map(theme.title_es)
+sf_estado = (
+    undated[undated["categoria"].isin(f.categorias)]
+    .groupby("cve_entidad")["conteo"].sum()
+)
+por_estado["sin_fecha"] = (
+    por_estado["cve_entidad"].map(sf_estado).fillna(0).astype(int)
+)
+
+# Denominator: mean CONAPO mid-year population over the selected years.
+y0, y1 = int(f.periodo_ini[:4]), min(int(f.periodo_fin[:4]), 2026)
+pop = data.load_population()
+pop_periodo = (
+    pop[pop["anio"].between(y0, y1)]
+    .groupby("cve_entidad")["poblacion"].mean()
+)
+por_estado["poblacion_promedio"] = por_estado["cve_entidad"].map(pop_periodo)
+por_estado["tasa_100k"] = (
+    por_estado["conteo"] / por_estado["poblacion_promedio"] * 100_000
+).round(1)
+
+en_tasa = st.toggle(
+    "Por cada 100 mil habitantes", key="pan-rank-tasa",
+    help="Población promedio a mitad de año del periodo seleccionado "
+         "(CONAPO, proyecciones revisión 2023).",
+)
+rank = por_estado.copy()
+if en_tasa:
+    rank = rank.dropna(subset=["poblacion_promedio"])
+    value_col = "tasa_100k"
+    rank_sorted = rank.sort_values(value_col, ascending=False)
+    top = rank_sorted.iloc[0]
+    title = (
+        f"{top['entidad_label']} registra la tasa más alta: "
+        f"{top['tasa_100k']:,.1f} registros por 100 mil habitantes "
+        f"({f.periodo_label})"
+    )
+    subtitle = (
+        f"Tasa = registros con hechos en el periodo / población promedio "
+        f"a mitad de año {y0}–{y1} × 100,000 · Entidad no especificada "
+        "se excluye de las tasas (sin población)"
+    )
+    text = [f"{v:,.1f}" for v in rank_sorted.sort_values(value_col)[value_col]]
+else:
+    value_col = "conteo"
+    rank_sorted = rank.sort_values(value_col, ascending=False)
+    top = rank_sorted.iloc[0]
+    pct_top = top["conteo"] / max(int(rank["conteo"].sum()), 1) * 100
+    title = (
+        f"{top['entidad_label']} concentra el {pct_top:,.1f}% de los "
+        f"registros con hechos en {f.periodo_label}"
+    )
+    subtitle = (
+        "Conteos absolutos, sin ajustar por población — active la tasa "
+        "para comparar entidades de distinto tamaño"
+    )
+    text = [
+        f"{int(v):,} · +{int(sf):,} s/f"
+        for v, sf in zip(
+            rank.sort_values(value_col)["conteo"],
+            rank.sort_values(value_col)["sin_fecha"],
+        )
+    ]
+
+destacado = st.selectbox(
+    "Destacar entidad",
+    options=list(rank_sorted["cve_entidad"]),
+    format_func=lambda c: rank_sorted.set_index("cve_entidad")
+    .loc[c, "entidad_label"],
+    key="pan-rank-destacar",
+)
+hover = [
+    f"{int(v):,} registros · +{int(sf):,} sin fecha"
+    + (f" · {t:,.1f} por 100k" if pd.notna(t) else "")
+    for v, sf, t in zip(
+        rank.sort_values(value_col)["conteo"],
+        rank.sort_values(value_col)["sin_fecha"],
+        rank.sort_values(value_col)["tasa_100k"],
+    )
+]
+theme.chart_frame(
+    title=title,
+    subtitle=subtitle,
+    source=theme.source_line(
+        consultado,
+        extra="población CONAPO (rev. 2023)" if en_tasa else "",
+    ),
+    fig=charts.ranking_fig(
+        rank, value_col=value_col, text=text, hover=hover,
+        highlight_cve=destacado,
+    ),
+    data=rank_sorted.drop(columns=["entidad_label"]),
+    download_name=(
+        f"umbral_rnpdno_ranking_estatal_{f.periodo_ini}_{f.periodo_fin}"
+        f"_c{consultado}.csv"
+    ),
+    key="pan-rank",
+)
+st.caption(
+    "«+N s/f» = registros de esa entidad sin fecha de hechos, no "
+    "sumados a la barra. Entidad no especificada agrupa registros cuya "
+    "entidad se desconoce — ubicación desconocida no es cero."
+)

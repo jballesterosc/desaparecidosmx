@@ -56,6 +56,19 @@ def month_options() -> list[str]:
 
 
 @st.cache_data
+def load_population() -> pd.DataFrame:
+    """CONAPO mid-year population per entidad × year, 2010–2026.
+
+    Built by scripts/build_population_reference.py; the vintage rides
+    in the `fuente` column. Estado 33 has no population by design.
+    """
+    return pd.read_csv(
+        REPO_ROOT / "data" / "reference" / "poblacion_entidades.csv",
+        dtype={"cve_entidad": str},
+    )
+
+
+@st.cache_data
 def estado_options() -> list[tuple[str, str]]:
     """(cve_entidad, entidad) pairs, INEGI order, estado 33 last."""
     dated, _ = load_register()

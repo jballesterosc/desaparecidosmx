@@ -13,7 +13,7 @@ estados = data.estado_options()
 cve, entidad = st.selectbox(
     "Estado",
     options=estados,
-    format_func=lambda pair: pair[1].title(),
+    format_func=lambda pair: theme.title_es(pair[1]),
     key="est-entidad",
 )
 f = filters.filter_rail(key_prefix="est")

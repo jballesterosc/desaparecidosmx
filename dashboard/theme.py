@@ -117,13 +117,15 @@ def plotly_layout() -> dict:
         colorway=[MODE["signal"], MODE["model"], MODE["muted"], MODE["alert"]],
         showlegend=False,
         margin=dict(l=8, r=8, t=8, b=8),
-        xaxis=dict(showgrid=False, tickfont=mono, zeroline=False),
+        xaxis=dict(showgrid=False, tickfont=mono, zeroline=False,
+                   automargin=True),
         yaxis=dict(
             gridcolor=MODE["gridline"],
             zerolinecolor=MODE["baseline"],
             tickfont=mono,
             rangemode="tozero",
             showline=False,
+            automargin=True,
         ),
         hoverlabel=dict(
             bgcolor=MODE["panel"],
@@ -149,6 +151,19 @@ def source_line(consultado: str, extra: str = "") -> str:
 def fmt(n: int | float) -> str:
     """Tabular figure with comma thousands separator."""
     return f"{n:,.0f}"
+
+
+_LOWER_ES = {"de", "del", "la", "las", "los", "y", "e", "no"}
+
+
+def title_es(name: str) -> str:
+    """Title-case an uppercase entity name, Spanish connectors lowered
+    (ESTADO DE MEXICO → Estado de Mexico)."""
+    words = name.title().split()
+    return " ".join(
+        w.lower() if i and w.lower() in _LOWER_ES else w
+        for i, w in enumerate(words)
+    )
 
 
 def chart_frame(
