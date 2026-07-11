@@ -9,7 +9,8 @@ The public dashboard only shows aggregate counts per filter combination
 and has no bulk export. This pipeline reproduces the dashboard's
 internal JSON API calls, iterates over filter permutations, caches every
 raw response, and reconciles the normalized output against the
-dashboard's own totals.
+dashboard's own totals. A [Streamlit dashboard](#dashboard) sits on top
+of the processed CSVs.
 
 ## Output
 
@@ -28,6 +29,16 @@ Plus combined national files built from the per-state CSVs:
   (dated rows only).
 - `data/processed/all-states/<YYYY>.csv` — all states, all 12 months,
   plus each state's SIN_FECHA bucket once (filterable via `periodo`).
+  **Concatenating several yearly files repeats that bucket once per
+  year** — dedupe SIN_FECHA rows on `cve_entidad` × `categoria` when
+  combining years.
+
+Reference data (not from the RNPDNO):
+
+- `data/reference/poblacion_entidades.csv` — CONAPO mid-year population
+  per entidad × year (2010–2026, revisión 2023), used by the dashboard
+  for per-100k rates. Built by `scripts/build_population_reference.py`;
+  the vintage is stated in the file's `fuente` column.
 
 Columns: `cve_entidad`, `entidad`, `periodo`, `categoria`, `sexo`,
 `cve_municipio`, `municipio`, `conteo`, `consultado_en`. The full schema
@@ -104,10 +115,22 @@ src/rnpdno/
 ├── export.py      # write per-state monthly CSVs (data/processed/)
 ├── combine.py     # concatenate per-state CSVs into all-states files
 └── run.py         # orchestrator: ingest → export → combine, log-and-continue
+dashboard/
+├── app.py         # Streamlit entry point (three pages via st.navigation)
+├── theme.py       # Umbral tokens, CSS, plotly layout, chart_frame
+├── data.py        # cached loaders (incl. SIN_FECHA dedupe across years)
+├── filters.py     # sidebar rail + full-grain slice download
+├── charts.py      # trend / ranking / categoría×sexo figure builders
+└── views/         # panorama.py, estado.py, datos.py
+scripts/
+└── build_population_reference.py  # CONAPO population → data/reference/
+assets/            # Umbral tokens (tokens.json/.css) + logo SVGs
 docs/
-├── data_dictionary.md  # CSV schema — the contract for consumers
-├── methodology.md      # how the numbers are produced, and why
-└── DECISIONS.md        # ADR-style log of pipeline decisions
+├── data_dictionary.md    # CSV schema — the contract for consumers
+├── methodology.md        # how the numbers are produced, and why
+├── DECISIONS.md          # ADR-style log of pipeline + dashboard decisions
+├── umbral-brand.md       # Umbral design system — binding for all UI
+└── umbral-engineering.md # implementation + interpretability standards
 ```
 
 ## Ground rules

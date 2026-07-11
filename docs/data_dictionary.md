@@ -38,6 +38,29 @@ DECISIONS.md #9):
   each state's `sin-fecha.csv` exactly once. Filter on
   `periodo != SIN_FECHA` for dated rows only.
 
+> **Caveat for multi-year consumers:** each yearly file carries the
+> SIN_FECHA bucket once, so concatenating N yearly files repeats it N
+> times. Dedupe SIN_FECHA rows on `cve_entidad` × `categoria` (keep the
+> latest `consultado_en`) before summing anything — the dashboard's
+> loader (`dashboard/data.py`) does exactly this.
+
+## Reference data (not from the RNPDNO)
+
+`data/reference/poblacion_entidades.csv` — CONAPO mid-year population
+per entidad × year, 2010–2026, used by the dashboard for per-100k
+rates. Source: CONAPO, *Proyecciones de la Población de México y de las
+Entidades Federativas 2020-2070* (revisión 2023) open-data file,
+aggregated from single-age × sex rows by
+`scripts/build_population_reference.py`.
+
+| column | type | example | note |
+|---|---|---|---|
+| `cve_entidad` | str(2) | `01` | INEGI code; **no row for `33`** (no population exists for "entidad no especificada") |
+| `entidad` | str | `Aguascalientes` | CONAPO spelling, not the RNPDNO's uppercase |
+| `anio` | int | `2026` | calendar year (población a mitad de año) |
+| `poblacion` | int | `1210556` | both sexes, all ages |
+| `fuente` | str | — | the vintage, repeated per row so downloads stay self-describing |
+
 ## Row grain
 
 **One row per entidad × month × categoría × sexo × municipio**, with a

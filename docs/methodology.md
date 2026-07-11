@@ -109,6 +109,19 @@ Every entidad × month slice must satisfy, or the transform fails:
 Spike anchor: Aguascalientes × 2024-01 → `TotalGlobal` = 79
 (browser-verified), enforced in `tests/test_transform.py`.
 
+## Population denominators (dashboard rates)
+
+The dashboard's per-100k rates divide period registros by the **mean
+CONAPO mid-year population over the selected years** (person-years
+approach). Population comes from CONAPO's open-data *Proyecciones de la
+Población de México y de las Entidades Federativas 2020-2070* (revisión
+2023), aggregated to entidad × year by
+`scripts/build_population_reference.py` into
+`data/reference/poblacion_entidades.csv`; the vintage is stated in the
+file (`fuente` column) and in every rate caption. Estado 33 has no
+population and is shown in counts only — never silently dropped from
+count views, never silently rated.
+
 ## Living-register semantics
 
 The RNPDNO is continuously updated: records are added, dated,

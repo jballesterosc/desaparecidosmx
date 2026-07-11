@@ -18,6 +18,10 @@ other variables. Output goes to data/processed/.
 - Be gentle: respect REQUEST_DELAY_SECONDS, use tenacity for retries.
 - Never commit data/raw/ (may contain sensitive detail).
 - CSV schema is defined in docs/data_dictionary.md — keep it in sync.
+- The dashboard (dashboard/, run `streamlit run dashboard/app.py` from
+  the repo root) reads only data/processed/ and data/reference/ —
+  never the network. When concatenating yearly all-states files,
+  dedupe SIN_FECHA rows (see data.py / data_dictionary.md).
 
 ## Brand — binding for all UI, charts, and published artifacts
 Anything user-facing (dashboard, figures, social, docs) follows the
