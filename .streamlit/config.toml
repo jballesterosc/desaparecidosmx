@@ -1,0 +1,14 @@
+# Umbral · modo instrumento (dashboards live in dark mode).
+# Hexes mirror assets/tokens.json → mode.instrumento; config.toml cannot
+# read JSON, so keep these in sync with the tokens by hand.
+
+[theme]
+base = "dark"
+primaryColor = "#5FD4C4"            # signal
+backgroundColor = "#101418"         # base
+secondaryBackgroundColor = "#171C22" # panel
+textColor = "#EDF1F4"               # ink
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
