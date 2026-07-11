@@ -192,3 +192,40 @@ whenever a call of this kind is made; keep entries short.
   touching the delay, adding concurrency, or altering the per-month
   reconciliation invariants (entry 2); honors "be gentle" by asking
   the server only for what actually varies.
+
+## 12. Dashboard framing: descriptive monitor under the Umbral system
+
+- **Problem:** The dashboard's scope and honesty posture had to be
+  settled before building: explorer vs analytical instrument, page
+  structure, and how the data's gaps surface in the UI. Design
+  reviewed and approved 2026-07-11 (proposal in session; brand rules
+  in docs/umbral-brand.md + docs/umbral-engineering.md, binding).
+- **Options & decisions:**
+  1. **Descriptive monitor, no projections in v1.** A defensible
+     forecast needs register-dynamics modeling (living register,
+     fecha-de-hechos reporting lag, one `consultado_en` vintage) that
+     we don't have data for; the brand's uncertainty rules make an
+     undefendable projection a violation, not a feature. The `model`
+     token stays reserved for a future modeled series.
+  2. **Three pages by question altitude** — Panorama nacional /
+     Detalle por estado / Datos y método — instead of the wireframe's
+     single page, resolving the all-states-ranking vs one-state-
+     municipal filter tension.
+  3. **SIN_FECHA always visible, never a toggle.** The wireframe's
+     "include SIN_FECHA" checkbox is dropped: undated counts render
+     as permanent separate elements (badges/annotations/panel) and
+     are never summed into dated series or bars.
+  4. **Neutral KPI deltas.** No signal/alert coloring on
+     month-over-month changes: recent drops are usually reporting
+     lag, and valenced deltas on disappearances fail both honesty and
+     dignity rules. Deliberate deviation from the component spec's
+     delta coloring, per its own "decide direction per metric" escape
+     hatch.
+  5. **Per-100k toggle in v1** for the state ranking (umbral-
+     engineering.md bans raw-count comparison across differently
+     sized populations): static population file in `data/reference/`
+     with its vintage year stated in the file and in the chart
+     caption; estado 33 shows counts only (no population exists).
+- **Why:** Every choice falls out of the same principle the pipeline
+  already encodes (entries 4, 5, 8): gaps are shown, not smoothed
+  over, and nothing is claimed that the data can't defend.
