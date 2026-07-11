@@ -162,3 +162,39 @@ def ranking_fig(
                       color=theme.MODE["ink"]),
     )
     return fig
+
+
+def cat_sexo_fig(df: pd.DataFrame) -> go.Figure:
+    """Grouped bars on a two-level axis (categoría › sexo).
+
+    Color follows categoría — the still-missing group wears signal —
+    so sexo is carried by position and direct labels, never by color
+    alone.
+    """
+    x = [
+        [theme.CATEGORIA_LABELS[c] for c in df["categoria"]],
+        list(df["sexo_label"]),
+    ]
+    fig = go.Figure(
+        go.Bar(
+            x=x,
+            y=df["conteo"],
+            marker=dict(
+                color=[theme.CATEGORIA_COLORS[c] for c in df["categoria"]]
+            ),
+            text=[f"{v:,}" for v in df["conteo"]],
+            textposition="outside",
+            textfont=dict(family="IBM Plex Mono", size=11,
+                          color=theme.MODE["muted"]),
+            cliponaxis=False,
+            hovertemplate="%{x} · %{y:,.0f}<extra></extra>",
+        )
+    )
+    fig.update_layout(**theme.plotly_layout())
+    fig.update_layout(height=400, bargap=0.35, margin=dict(t=24))
+    fig.update_yaxes(tickformat="~s")
+    fig.update_xaxes(
+        tickfont=dict(family="IBM Plex Sans", size=12,
+                      color=theme.MODE["ink"]),
+    )
+    return fig
