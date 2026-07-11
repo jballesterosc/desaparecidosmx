@@ -77,6 +77,22 @@ transform enforces reconciliation invariants (every CSV must sum to the
 dashboard's `TotalGlobal` for the same filter) and fails loudly if the
 source and output disagree.
 
+## Dashboard
+
+A Streamlit monitor over the processed CSVs — three pages (Panorama
+nacional / Detalle por estado / Datos y método) under the Umbral design
+system (`docs/umbral-brand.md`, binding). Run it from the repo root so
+`.streamlit/config.toml` applies:
+
+```sh
+streamlit run dashboard/app.py
+```
+
+Design decisions (descriptive monitor, SIN_FECHA always visible,
+neutral KPIs, per-100k with stated CONAPO vintage) are logged in
+`docs/DECISIONS.md` entry 12. State population reference data is built
+by `scripts/build_population_reference.py`.
+
 ## Repository layout
 
 ```
