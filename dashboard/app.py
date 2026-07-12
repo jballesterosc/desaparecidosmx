@@ -16,9 +16,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 theme.inject_css()
+# size="large": the lockup bakes in its clear space (one bar-height,
+# umbral-brand.md §5), so the default 24px render leaves the wordmark
+# too small to read.
 st.logo(
     str(theme.REPO_ROOT / "assets" / "umbral-lockup-dark.svg"),
     icon_image=str(theme.REPO_ROOT / "assets" / "umbral-isotype-dark.svg"),
+    size="large",
 )
 
 st.navigation(

@@ -11,11 +11,16 @@ st.title("Detalle por estado")
 
 dated, undated = data.load_register()
 estados = dict(data.estado_options())
+# selectbox shows a text cursor, but typing only filters the list:
+# it snaps back to a valid option on blur and cannot submit free text
+# (accept_new_options defaults to False). 33 entidades is too many for
+# st.radio, so selectbox stays.
 cve = st.selectbox(
     "Estado",
     options=list(estados),
     format_func=lambda c: theme.title_es(estados[c]),
     key="est-entidad",
+    placeholder="Seleccionar...",
 )
 entidad_label = theme.title_es(estados[cve])
 f = filters.filter_rail(key_prefix="est")

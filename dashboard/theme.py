@@ -47,8 +47,20 @@ _CSS = f"""
    (umbral-engineering.md §1) — the Google import is dev-only. */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-html, body, [data-testid="stAppViewContainer"] * {{
+html, body {{
     font-family: 'IBM Plex Sans', sans-serif;
+}}
+/* Streamlit draws its UI icons (sidebar toggle, expander chevron, …)
+   as Material Symbols ligatures — spans whose testid contains "Icon"
+   (stIconMaterial, stExpanderToggleIcon, …). Overriding their
+   font-family turns them into raw text ("keyboard_double_arrow_right"),
+   so they stay excluded here and re-asserted below. */
+[data-testid="stAppViewContainer"]
+  *:not([data-testid*="Icon"]):not([class*="material-symbols"]) {{
+    font-family: 'IBM Plex Sans', sans-serif;
+}}
+[data-testid="stIconMaterial"], [class*="material-symbols"] {{
+    font-family: 'Material Symbols Rounded' !important;
 }}
 h1, h2, h3 {{
     font-family: 'Space Grotesk', sans-serif !important;
