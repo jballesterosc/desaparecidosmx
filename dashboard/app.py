@@ -5,8 +5,18 @@ Run from the repo root so .streamlit/config.toml applies:
     .venv/bin/streamlit run dashboard/app.py
 """
 
+import os
+
+# pyarrow 25's bundled mimalloc corrupts memory in this app (segfaults
+# in Arrow-string compares and st.dataframe serialization, reproduced
+# on Linux 3.13 and macOS 3.14) — force the system allocator. The env
+# var must be set before pyarrow is first imported; the
+# set_memory_pool call below covers the case where it already was.
+os.environ.setdefault("ARROW_DEFAULT_MEMORY_POOL", "system")
+
 import faulthandler
 
+import pyarrow as pa
 import streamlit as st
 
 import theme
@@ -14,6 +24,7 @@ import theme
 # Dump the Python stack to stderr if a native extension crashes the
 # process, so hosted logs show more than "Segmentation fault".
 faulthandler.enable()
+pa.set_memory_pool(pa.system_memory_pool())
 
 st.set_page_config(
     page_title="umbral_ · RNPDNO",
