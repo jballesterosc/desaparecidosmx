@@ -2,7 +2,11 @@ requests>=2.32
 tenacity>=9.0
 pytest>=8.0
 
-# dashboard
-streamlit>=1.59
-plotly>=6.0
-pandas>=2.2
+# dashboard — pinned to the locally verified set; runs on Python 3.13.
+# pandas 3 Arrow-string comparisons segfault under Python 3.14
+# (pyarrow mimalloc crash), so keep the deployed Python on 3.13 too.
+streamlit==1.59.1
+plotly==6.9.0
+pandas==3.0.3
+pyarrow==25.0.0
+numpy==2.5.1
