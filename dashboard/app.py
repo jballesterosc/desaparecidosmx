@@ -5,9 +5,15 @@ Run from the repo root so .streamlit/config.toml applies:
     .venv/bin/streamlit run dashboard/app.py
 """
 
+import faulthandler
+
 import streamlit as st
 
 import theme
+
+# Dump the Python stack to stderr if a native extension crashes the
+# process, so hosted logs show more than "Segmentation fault".
+faulthandler.enable()
 
 st.set_page_config(
     page_title="umbral_ · RNPDNO",
