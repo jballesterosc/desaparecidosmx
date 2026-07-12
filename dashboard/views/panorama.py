@@ -194,12 +194,16 @@ else:
         )
     ]
 
+# selectbox shows a text cursor, but typing only filters the list:
+# it snaps back to a valid option on blur and cannot submit free text
+# (accept_new_options defaults to False).
 destacado = st.selectbox(
     "Destacar entidad",
     options=list(rank_sorted["cve_entidad"]),
     format_func=lambda c: rank_sorted.set_index("cve_entidad")
     .loc[c, "entidad_label"],
     key="pan-rank-destacar",
+    placeholder="Seleccionar...",
 )
 hover = [
     f"{int(v):,} registros · +{int(sf):,} sin fecha"
