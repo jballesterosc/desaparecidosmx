@@ -3,12 +3,15 @@ tenacity>=9.0
 pytest>=8.0
 
 # dashboard — pinned exactly; deployed on Streamlit Community Cloud.
-# pandas 3.x is banned here: its Arrow-backed string comparisons
-# segfault inside pyarrow 25's mimalloc (killed the deployed app on
-# Linux 3.13 and macOS 3.14). pandas 2.3 uses a different string
-# engine and passes the full AppTest interaction sweep on both.
+# pyarrow 25.0.0 has a native memory bug that segfaulted the deployed
+# app through three separate APIs (Arrow-string compares,
+# Table.from_pandas, IPC RecordBatchStreamWriter). pyarrow 24.0.0
+# passes the same reproducer that reliably crashes 25.0.0 — do not
+# bump pyarrow without rerunning that sweep. pandas stays on 2.3.x
+# because its pandas-3 Arrow-string default multiplies exposure to
+# pyarrow's native paths.
 streamlit==1.59.1
 plotly==6.9.0
 pandas==2.3.3
-pyarrow==25.0.0
+pyarrow==24.0.0
 numpy==2.5.1
